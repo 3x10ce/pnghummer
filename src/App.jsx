@@ -2,6 +2,7 @@ import React from "react";
 
 import { Header} from "./components/header/Header";
 import { FileLoader } from "./components/file-loader/FileLoader";
+import "./styles.scss";
 
 export const App = () => {
   const onSelect = (file) => {
