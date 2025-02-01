@@ -23,9 +23,9 @@ module.exports = {
       },
       {
         // 拡張子 js のファイル（正規表現）
-        test: /\.jsx?$/,
+        test: /\.tsx?$/,
         // ローダーの指定
-        loader: "babel-loader",
+        loader: "ts-loader",
       },
       {
         // 拡張子 scss または css のファイル
@@ -56,9 +56,9 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: [".js", ".json", ".jsx"],
+    extensions: [".js", ".json", ".jsx", ".ts", ".tsx"],
   },
-  entry: "./src/index.jsx",
+  entry: "./src/index.tsx",
   output: {
     filename: "main.js",
     path: path.resolve(__dirname, "dist"),

@@ -5,7 +5,7 @@ import { FileLoader } from "./components/file-loader/FileLoader";
 import "./styles.scss";
 
 export const App = () => {
-  const onSelect = (file) => {
+  const onSelect = (file: File) => {
     console.log(file);
   }
   return (
