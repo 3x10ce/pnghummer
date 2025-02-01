@@ -1,9 +1,9 @@
+import { crc32 } from "./crc32";
+
 export class PngData {
-  public pngData: Uint8Array;
+  public fileHeader: Uint8Array;
 
-  public fileHeader: Uint8Array | null = null;
-
-  public IHDR: PngIHDR | null = null;
+  public IHDR: PngIHDR;
 
   public ancillaryChunks: PngChunk[] = [];
 
@@ -13,20 +13,20 @@ export class PngData {
 
   constructor(public _pngData: ArrayBuffer) {
 
-    this.pngData = new Uint8Array(_pngData);
+    const pngData = new Uint8Array(_pngData);
 
     // Parse File Header
-    const fileHeader = this.pngData.slice(0, 8);
+    const fileHeader = pngData.slice(0, 8);
     this.fileHeader = fileHeader;
 
     // Parse IHDR
-    const IHDR = this.pngData.slice(8);
+    const IHDR = pngData.slice(8);
     this.IHDR = new PngIHDR(IHDR);
 
     // Parse following chunks
     let offset = 8 + this.IHDR.length + 12;
-    while (offset < this.pngData.length) {
-      const chunk = new PngChunk(this.pngData.slice(offset));
+    while (offset < pngData.length) {
+      const chunk = new PngChunk(pngData.slice(offset));
       const length = chunk.length + 12;
       
       if (chunk.type === "IEND") {
@@ -41,6 +41,19 @@ export class PngData {
       offset += length;
     }
   }
+
+  public toBlob() {
+    const blobParts = [
+      this.fileHeader,
+      this.IHDR.toBinary(),
+      ...this.ancillaryChunks.map((chunk) => chunk.toBinary()),
+      ...this.IDATs.map((chunk) => chunk.toBinary()),
+    ]
+    if (this.IEND) {
+      blobParts.push(this.IEND.toBinary());
+    }
+    return new Blob(blobParts, { type: "image/png" });
+  }
 }
 
 export class PngChunk {
@@ -54,6 +67,36 @@ export class PngChunk {
     this.type = new TextDecoder().decode(chunk.slice(4, 8).buffer);
     this.data = chunk.slice(8, 8 + this.length);
     this.crc = chunk[8 + this.length] << 24 | chunk[8 + this.length + 1] << 16 | chunk[8 + this.length + 2] << 8 | chunk[8 + this.length + 3];
+  }
+
+  /**
+   * Edit 1 byte data
+   * @param data 1 byte data [0-255]
+   * @param offset position of data
+   */
+  write1byte(data: number, offset: number) {
+    this.data[offset] = data;
+
+    // recalculate crc
+    this.crc = crc32(this.toBinary().slice(4));
+  }
+
+  /**
+   * Returns a binary representation of the chunk.
+   */
+  toBinary(): Uint8Array {
+    const binary = new Uint8Array(8 + this.length + 4);
+    binary[0] = this.length >> 24 & 0xFF;
+    binary[1] = this.length >> 16 & 0xFF;
+    binary[2] = this.length >> 8 & 0xFF;
+    binary[3] = this.length & 0xFF;
+    binary.set(new TextEncoder().encode(this.type), 4);
+    binary.set(this.data, 8);
+    binary[8 + this.length] = this.crc >> 24 & 0xFF;
+    binary[8 + this.length + 1] = this.crc >> 16 & 0xFF;
+    binary[8 + this.length + 2] = this.crc >> 8 & 0xFF;
+    binary[8 + this.length + 3] = this.crc & 0xFF;
+    return binary;
   }
 }
 

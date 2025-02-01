@@ -8,14 +8,25 @@ import { PngData } from "./logics/png-data";
 import "./styles.scss";
 
 export const App = () => {
+
+  let pngData: PngData | null = null;
+  let [imageSrc, setImageSrc] = React.useState("");
   const onSelect = async (file: File) => {
-    const pngData = new PngData(await file.arrayBuffer());
+    pngData = new PngData(await file.arrayBuffer());
+    
     console.log(pngData);
+
+    // preview image
+    if (imageSrc) URL.revokeObjectURL(imageSrc);
+    setImageSrc(URL.createObjectURL(pngData.toBlob()));
+    
   }
   return (
     <div className="container">
       <Header />
       <FileLoader onSelect={onSelect}/>
+
+      <img src={imageSrc} alt="" className="previewimg"/>
     </div>
   );
 };
