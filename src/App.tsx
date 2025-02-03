@@ -6,10 +6,12 @@ import { FileLoader } from "./components/file-loader/FileLoader";
 import { PngData } from "./logics/png-data";
 
 import "./styles.scss";
+import { PngImageGlitcher } from "./logics/png-image";
 
 export const App = () => {
 
   let pngData: PngData | null = null;
+  let pngImageGlitcher: PngImageGlitcher | null = null;
   let [imageSrc, setImageSrc] = React.useState("");
   const onSelect = async (file: File) => {
     pngData = new PngData(await file.arrayBuffer());
@@ -18,7 +20,8 @@ export const App = () => {
 
     // preview image
     if (imageSrc) URL.revokeObjectURL(imageSrc);
-    setImageSrc(URL.createObjectURL(pngData.toBlob()));
+    pngImageGlitcher = await PngImageGlitcher.from(pngData);
+    setImageSrc(URL.createObjectURL((await pngImageGlitcher.getImage()).toBlob()));
     
   }
   return (

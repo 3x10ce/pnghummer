@@ -21,12 +21,12 @@ export class PngData {
 
     // Parse IHDR
     const IHDR = pngData.slice(8);
-    this.IHDR = new PngIHDR(IHDR);
+    this.IHDR = PngIHDR.fromBinary(IHDR);
 
     // Parse following chunks
     let offset = 8 + this.IHDR.length + 12;
     while (offset < pngData.length) {
-      const chunk = new PngChunk(pngData.slice(offset));
+      const chunk = PngChunk.fromBinary(pngData.slice(offset));
       const length = chunk.length + 12;
       
       if (chunk.type === "IEND") {
@@ -62,23 +62,26 @@ export class PngChunk {
   public length: number;
   public crc: number;
 
-  constructor(chunk: Uint8Array) {
-    this.length = chunk[0] << 24 | chunk[1] << 16 | chunk[2] << 8 | chunk[3];
-    this.type = new TextDecoder().decode(chunk.slice(4, 8).buffer);
-    this.data = chunk.slice(8, 8 + this.length);
-    this.crc = chunk[8 + this.length] << 24 | chunk[8 + this.length + 1] << 16 | chunk[8 + this.length + 2] << 8 | chunk[8 + this.length + 3];
+  constructor(type: string, data: Uint8Array, length: number | undefined = undefined, crc: number | undefined = undefined) {
+    this.type = type;
+    this.data = data;
+    this.length = length || data.length;
+    this.crc = crc || crc32(this.toBinary().slice(4));
   }
 
-  /**
-   * Edit 1 byte data
-   * @param data 1 byte data [0-255]
-   * @param offset position of data
-   */
-  write1byte(data: number, offset: number) {
-    this.data[offset] = data;
+  public static fromBinary(chunk: Uint8Array) {
+    const length = chunk[0] << 24 | chunk[1] << 16 | chunk[2] << 8 | chunk[3];
+    const type = new TextDecoder().decode(chunk.slice(4, 8).buffer);
+    const data = chunk.slice(8, 8 + length);
+    const crc = chunk[8 + length] << 24 | chunk[8 + length + 1] << 16 | chunk[8 + length + 2] << 8 | chunk[8 + length + 3];
 
-    // recalculate crc
-    this.crc = crc32(this.toBinary().slice(4));
+    // check CRC
+    const crcCheck = crc32(chunk.slice(4, 8 + length));
+    if (crcCheck !== crc) {
+      console.warn(`CRC check failed: ${crcCheck} !== ${crc}`);
+    }
+    
+    return new PngChunk(type, data, length, crc);
   }
 
   /**
@@ -109,8 +112,9 @@ export class PngIHDR extends PngChunk{
   public filterMethod: number;
   public interlaceMethod: number;
 
-  constructor(chunk: Uint8Array) { 
-    super(chunk);
+  constructor(type: string, data: Uint8Array, length: number | undefined, crc: number | undefined) {
+    super(type, data, length, crc);
+
     this.width = this.data[0] << 24 | this.data[1] << 16 | this.data[2] << 8 | this.data[3];
     this.height = this.data[4] << 24 | this.data[5] << 16 | this.data[6] << 8 | this.data[7];
     this.bitDepth = this.data[8];
@@ -118,5 +122,11 @@ export class PngIHDR extends PngChunk{
     this.compressionMethod = this.data[10];
     this.filterMethod = this.data[11];
     this.interlaceMethod = this.data[12];
+
+  }
+
+  public static fromBinary(chunk: Uint8Array) {
+    const sc = super.fromBinary(chunk);
+    return new PngIHDR(sc.type, sc.data, sc.length, sc.crc);
   }
 }
