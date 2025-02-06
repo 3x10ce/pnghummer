@@ -66,7 +66,7 @@ export class PngChunk {
     this.type = type;
     this.data = data;
     this.length = length || data.length;
-    this.crc = crc || crc32(this.toBinary().slice(4));
+    this.crc = crc || crc32(this.toBinary().slice(4, 8 + this.length));
   }
 
   public static fromBinary(chunk: Uint8Array) {

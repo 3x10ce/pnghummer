@@ -10,19 +10,20 @@ import { PngImageGlitcher } from "./logics/png-image";
 
 export const App = () => {
 
-  let pngData: PngData | null = null;
+
   let pngImageGlitcher: PngImageGlitcher | null = null;
   let [imageSrc, setImageSrc] = React.useState("");
+  let pngData: PngData | null = null;
   const onSelect = async (file: File) => {
     pngData = new PngData(await file.arrayBuffer());
-    
     console.log(pngData);
-
-    // preview image
+    console.log(pngData.toBlob());
+    
     if (imageSrc) URL.revokeObjectURL(imageSrc);
     pngImageGlitcher = await PngImageGlitcher.from(pngData);
-    setImageSrc(URL.createObjectURL((await pngImageGlitcher.getImage()).toBlob()));
-    
+    const pngImageGlitched = (await pngImageGlitcher.getImage()).toBlob()
+    console.log(pngImageGlitched);
+    setImageSrc(URL.createObjectURL(pngImageGlitched));
   }
   return (
     <div className="container">

@@ -19,7 +19,6 @@ export class PngImageGlitcher {
     // read decompressed data
     const decompressedData: Uint8Array[] = [];
     for await (const chunk of dsStream) {
-      console.log(chunk);
       decompressedData.push(chunk);
     }
     const imageData = new Uint8Array(await new Blob(decompressedData).arrayBuffer());
@@ -54,8 +53,8 @@ export class PngImageGlitcher {
     offset = 0;
   
     while (offset < mergedImageData.length) {
-      // packing data to IDAT per 8KB
-      const length = Math.min(8192, mergedImageData.length - offset);
+      // packing data to IDAT 
+      const length = Math.min(8 * 1024, mergedImageData.length - offset);
       const data = mergedImageData.slice(offset, offset + length);
 
       // create IDAT
@@ -63,10 +62,10 @@ export class PngImageGlitcher {
       IDATs.push(IDAT);
       offset += length;
     }
-    
+    console.log(IDATs);
     // update IDATs
     this.pngData.IDATs = IDATs;
-
+    console.log(this.pngData);
     return this.pngData;
   }
 }
