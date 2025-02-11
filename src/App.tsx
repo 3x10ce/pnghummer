@@ -6,12 +6,12 @@ import { FileLoader } from "./components/file-loader/FileLoader";
 import { PngData } from "./logics/png-data";
 
 import "./styles.scss";
-import { PngImageGlitcher } from "./logics/png-image";
+import { PngImage } from "./logics/png-image";
 
 export const App = () => {
 
 
-  let pngImageGlitcher: PngImageGlitcher | null = null;
+  let pngImage: PngImage | null = null;
   let [imageSrc, setImageSrc] = React.useState("");
   let pngData: PngData | null = null;
   const onSelect = async (file: File) => {
@@ -20,8 +20,15 @@ export const App = () => {
     console.log(pngData.toBlob());
     
     if (imageSrc) URL.revokeObjectURL(imageSrc);
-    pngImageGlitcher = await PngImageGlitcher.from(pngData);
-    const pngImageGlitched = (await pngImageGlitcher.getImage()).toBlob()
+    pngImage = await PngImage.from(pngData);
+
+    // glitch 
+    for(let i = 0; i < 100; i++) {
+      const x = Math.floor(Math.random() * pngImage.pngData.IHDR.width);
+      const y = Math.floor(Math.random() * pngImage.pngData.IHDR.height);
+      pngImage.setRawPixel(x, y, Math.floor(Math.random() * 256));
+    }
+    const pngImageGlitched = (await pngImage.getPngData()).toBlob()
     console.log(pngImageGlitched);
     setImageSrc(URL.createObjectURL(pngImageGlitched));
   }

@@ -2,12 +2,21 @@
 import { crc32 } from "./crc32";
 import { PngData, PngChunk } from "./png-data";
 
-export class PngImageGlitcher {
+export class PngImage {
   public pngData: PngData;
-  public imageData: Uint8Array;
+  public imageData: PngImageScanline[];
   protected constructor(pngData: PngData, imageData: Uint8Array) {
     this.pngData = pngData;
-    this.imageData = imageData;
+    this.imageData = [];
+    
+    // convert imageData to scanlines
+    let offset = 0;
+    const scanlineLnength = this.pngData.IHDR.width + 1;
+    while (offset < imageData.length) {
+      const scanline = imageData.slice(offset, offset + scanlineLnength);
+      this.imageData.push(new PngImageScanline(scanline));
+      offset += scanlineLnength;
+    }
   }
 
   public static async from(pngData: PngData) {
@@ -23,13 +32,13 @@ export class PngImageGlitcher {
     }
     const imageData = new Uint8Array(await new Blob(decompressedData).arrayBuffer());
     console.log(`Decompress data size: ${dataBlob.size} => ${imageData.length}`);
-    return new PngImageGlitcher(pngData, imageData);
+    return new PngImage(pngData, imageData);
   }
 
-  public async getImage() {
+  public async getPngData() {
     // zlib compress image data
     const us = new CompressionStream("deflate");
-    const dataBlob = new Blob([this.imageData]);
+    const dataBlob = new Blob(this.imageData.map((scanline) => scanline.toBinary()));
     const usStream = dataBlob.stream().pipeThrough(us);
 
     // read compressed data
@@ -68,5 +77,65 @@ export class PngImageGlitcher {
     console.log(this.pngData);
     return this.pngData;
   }
+
+  public getRawPixel(x: number, y: number) {
+    const scanline = this.imageData[y];
+    const pixel = scanline.data[x];
+    return pixel;
+  }
+  
+  public setRawPixel(x: number, y: number, pixel: number | number[]) {
+    const scanline = this.imageData[y];
+    switch(this.pngData.IHDR.colorType) {
+      case 0:
+        // Grayscale
+        scanline.data[x] = pixel as number;
+        break;
+      case 2:
+        // RGB
+        scanline.data[x * 3 + 0] = (pixel as number[])[0];
+        scanline.data[x * 3 + 1] = (pixel as number[])[1];
+        scanline.data[x * 3 + 2] = (pixel as number[])[2];
+        break;
+      case 3:
+        // Palette
+        scanline.data[x] = pixel as number;
+        break;
+      case 4:
+        // Grayscale with alpha
+        scanline.data[x * 4 + 0] = (pixel as number[])[0];
+        scanline.data[x * 4 + 1] = (pixel as number[])[1];
+        scanline.data[x * 4 + 2] = (pixel as number[])[2];
+        scanline.data[x * 4 + 3] = (pixel as number[])[3];
+        break;
+      case 6:
+        // RGB with alpha
+        scanline.data[x * 4 + 0] = (pixel as number[])[0];
+        scanline.data[x * 4 + 1] = (pixel as number[])[1];
+        scanline.data[x * 4 + 2] = (pixel as number[])[2];
+        scanline.data[x * 4 + 3] = (pixel as number[])[3];
+        break;
+    }
+  }
 }
 
+export enum PngImageFilterType {
+  None = 0,
+  Sub = 1,
+  Up = 2,
+  Average = 3,
+  Paeth = 4
+}
+
+export class PngImageScanline {
+  public filterType: PngImageFilterType;
+  public data: Uint8Array;
+  constructor(scanline: Uint8Array) {
+    this.filterType = scanline[0];
+    this.data = scanline.slice(1);
+  }
+
+  public toBinary(): Uint8Array {
+    return new Uint8Array([this.filterType, ...this.data]);
+  }
+}
