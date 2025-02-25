@@ -1,15 +1,43 @@
 body {
   margin: 0;
 
-  .container {
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  .navbar {
+    background-color: #d1ecff;
+    padding-left: 0.5em;
   }
 
-  .previewimg {
-    width: 40vw;
+  .image-view {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    height: 75%;
   }
+
+  .image-view img {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .image-view canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // .container {
+  //   height: 100vh;
+  //   overflow: hidden;
+  //   display: flex;
+  //   justify-content: center;
+  //   align-items: center;
+  // }
+
+  // .previewimg {
+  //   width: 40vw;
+  // }
 }

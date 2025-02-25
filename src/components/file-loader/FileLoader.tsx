@@ -18,6 +18,7 @@ export const FileLoader = (props: FileLoaderProps) => {
       props.onSelect && props.onSelect(file);
     }    
   };
+
   return (
     <div className="file-loader">
       <input type="file" onChange={onchange} accept="image/*"/>

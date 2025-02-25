@@ -1,0 +1,143 @@
+import React from "react";
+
+import "../styles.scss";
+import { PngData } from "../logics/png-data";
+import { PngImage } from "../logics/png-image";
+
+type ImageViewProps = {
+  data: PngData | null
+}
+
+enum ToolMode {
+  None = 0,
+  Pencil = 1,
+  Hand = 2
+}
+export const ImageEditor = (props: ImageViewProps) => {
+
+  const imageViewDiv = React.useRef<HTMLImageElement | null>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const image = React.useRef<PngImage | null>(null);;
+  const [imageUrl, setImageUrl] = React.useState("");
+  const [toolMode, setToolMode] = React.useState<ToolMode>(ToolMode.None);
+
+  const scrollPosition = React.useRef({ x: 0, y: 0 });
+  const clientPosition = React.useRef({ x: 0, y: 0 });
+  React.useEffect(() => {
+    if (props.data) {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      PngImage.from(props.data).then((pngImage) => {
+        updateImageUrl(pngImage);
+      });
+    }
+
+    // // glitch 
+    // for(let i = 0; i < 10; i++) {
+    //   const x = Math.floor(Math.random() * pngImage.pngData.IHDR.width);
+    //   const y = Math.floor(Math.random() * pngImage.pngData.IHDR.height);
+    //   pngImage.setRawPixel(x, y, Math.floor(Math.random() * 256));
+    // }
+    // const pngImageGlitched = (await pngImage.getPngData()).toBlob()
+    // console.log(pngImageGlitched);
+    // setImageSrc(URL.createObjectURL(pngImageGlitched));
+  }, [props.data]);
+
+  const updateImageUrl = (pngImage: PngImage) => {
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
+    image.current = pngImage;
+    pngImage.getPngData().then((pngData) => {
+      console.log('updateImageUrl');
+      setImageUrl(URL.createObjectURL(pngData.toBlob()));
+    });
+  }
+
+  const onMousedown: React.MouseEventHandler<HTMLImageElement> = (event) => {
+    event.preventDefault();
+    // console.log(`mousedown ${event.button}`);
+    // 既にツールが選択されている場合は None に戻す
+    if (toolMode !== ToolMode.None) {
+      setToolMode(ToolMode.None);
+      return;
+    }
+
+    if (event.button === 1) {
+      // Hand mode
+      if (!imageViewDiv || !imageViewDiv.current) return;
+      const current = imageViewDiv.current as HTMLElement;
+      setToolMode(ToolMode.Hand);
+      scrollPosition.current = {
+        x: current.scrollLeft,
+        y: current.scrollTop
+      };
+      clientPosition.current = {
+        x: event.clientX,
+        y: event.clientY
+      };
+      current.style.cursor = "move";
+    } else if (event.button === 0) {
+      // Pencil mode
+      if (!imageViewDiv || !imageViewDiv.current) return;
+      const current = imageViewDiv.current as HTMLElement;
+      setToolMode(ToolMode.Pencil);
+      current.style.cursor = "crosshair";
+    }
+  }
+
+  const onMouseup: React.MouseEventHandler<HTMLImageElement> = (event) => {
+    event.preventDefault();
+    // console.log(`mouseup ${event.button}`);
+    // ツール選択を None に戻す
+    setToolMode(ToolMode.None);
+    
+    if (!imageViewDiv || !imageViewDiv.current) return;
+    const current = imageViewDiv.current as HTMLElement;
+    current.style.cursor = "default";
+  }
+
+  const onMousemove: React.MouseEventHandler<HTMLImageElement> = (event) => {
+    event.preventDefault();
+    if (!imageViewDiv || !imageViewDiv.current) return;
+    const current = imageViewDiv.current as HTMLElement;
+    console.log(`mousemove ${event.clientX}, ${event.clientY}`);
+    if (toolMode === ToolMode.Hand) {
+      current.scrollLeft = scrollPosition.current.x + (event.clientX - clientPosition.current.x);
+      current.scrollTop = scrollPosition.current.y + (event.clientY - clientPosition.current.y);
+    }
+
+    const rect = current.getBoundingClientRect();
+    const offset = {
+      x: event.clientX + current.scrollLeft- rect.left,
+      y: event.clientY + current.scrollTop - rect.top
+    };
+    console.log(offset);
+  }
+
+  const onMouseleave: React.MouseEventHandler<HTMLImageElement> = (event) => {
+    event.preventDefault();
+
+    // ツール選択を None に戻す
+    setToolMode(ToolMode.None);
+    if (!imageViewDiv || !imageViewDiv.current) return;
+    const current = imageViewDiv.current as HTMLElement;
+    current.style.cursor = "default";
+  }
+
+  const onMouseenter: React.MouseEventHandler<HTMLImageElement> = (event) => {
+    event.preventDefault();
+  }
+
+  return (
+    <div className="image-view" ref={imageViewDiv}>
+      {imageUrl && (
+        <img className="previewimg" src={imageUrl}
+          onMouseDown={onMousedown} onMouseUp={onMouseup} onMouseMove={onMousemove}
+          onMouseEnter={onMouseenter} onMouseLeave={onMouseleave}/>
+      )}
+      {image.current && (
+        <canvas className="editpreview" ref={canvasRef}
+          width={image.current?.pngData.IHDR.width} height={image.current?.pngData.IHDR.height} />
+      )}
+    </div>
+  );
+};
+

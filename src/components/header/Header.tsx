@@ -1,11 +1,12 @@
 import React from "react";
-
+import { Navbar, Container } from 'react-bootstrap';
 export const Header = () => {
   return (
-    <div className="header">
-      <h1>
-        GLITCH🔨
-      </h1>
-    </div>
+    <Navbar expand="lg">
+      <Container>
+        <Navbar.Brand>🔨 PNG Hummer</Navbar.Brand>
+      </Container>
+      
+    </Navbar>
   );
 };
