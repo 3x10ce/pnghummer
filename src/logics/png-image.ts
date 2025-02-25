@@ -11,7 +11,7 @@ export class PngImage {
     
     // convert imageData to scanlines
     let offset = 0;
-    const scanlineLnength = this.pngData.IHDR.width + 1;
+    const scanlineLnength = this.pngData.IHDR.height + 1;
     while (offset < imageData.length) {
       const scanline = imageData.slice(offset, offset + scanlineLnength);
       this.imageData.push(new PngImageScanline(scanline));
@@ -83,6 +83,7 @@ export class PngImage {
     const pixel = scanline.data[x];
     return pixel;
   }
+
   
   public setRawPixel(x: number, y: number, pixel: number | number[]) {
     const scanline = this.imageData[y];

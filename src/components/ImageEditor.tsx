@@ -23,6 +23,7 @@ export const ImageEditor = (props: ImageViewProps) => {
 
   const scrollPosition = React.useRef({ x: 0, y: 0 });
   const clientPosition = React.useRef({ x: 0, y: 0 });
+  const drawPixels = React.useRef<Array<[number, number]>>([]);
   React.useEffect(() => {
     if (props.data) {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -42,6 +43,24 @@ export const ImageEditor = (props: ImageViewProps) => {
     // setImageSrc(URL.createObjectURL(pngImageGlitched));
   }, [props.data]);
 
+  const glitch = () => {
+    // clear canvas
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    // Glitch PNG image
+    drawPixels.current.forEach(p => {
+      const [x, y] = p;
+      image.current?.setRawPixel(x, y, Math.floor(Math.random() * 256))
+    })
+    drawPixels.current = [];
+
+    updateImageUrl(image.current as PngImage);
+  }
+
   const updateImageUrl = (pngImage: PngImage) => {
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     image.current = pngImage;
@@ -53,6 +72,13 @@ export const ImageEditor = (props: ImageViewProps) => {
 
   const onMousedown: React.MouseEventHandler<HTMLImageElement> = (event) => {
     event.preventDefault();
+    if (!imageViewDiv || !imageViewDiv.current) return;
+    const current = imageViewDiv.current as HTMLElement;
+    const rect = current.getBoundingClientRect();
+    const offset = {
+      x: event.clientX + current.scrollLeft- rect.left,
+      y: event.clientY + current.scrollTop - rect.top
+    };
     // console.log(`mousedown ${event.button}`);
     // 既にツールが選択されている場合は None に戻す
     if (toolMode !== ToolMode.None) {
@@ -62,8 +88,6 @@ export const ImageEditor = (props: ImageViewProps) => {
 
     if (event.button === 1) {
       // Hand mode
-      if (!imageViewDiv || !imageViewDiv.current) return;
-      const current = imageViewDiv.current as HTMLElement;
       setToolMode(ToolMode.Hand);
       scrollPosition.current = {
         x: current.scrollLeft,
@@ -80,12 +104,18 @@ export const ImageEditor = (props: ImageViewProps) => {
       const current = imageViewDiv.current as HTMLElement;
       setToolMode(ToolMode.Pencil);
       current.style.cursor = "crosshair";
+      drawPixels.current = [[offset.x, offset.y]];
     }
   }
 
   const onMouseup: React.MouseEventHandler<HTMLImageElement> = (event) => {
     event.preventDefault();
     // console.log(`mouseup ${event.button}`);
+
+    // ペンモードなら、描画終了処理
+    if (toolMode === ToolMode.Pencil) {
+      glitch();
+    }
     // ツール選択を None に戻す
     setToolMode(ToolMode.None);
     
@@ -98,22 +128,37 @@ export const ImageEditor = (props: ImageViewProps) => {
     event.preventDefault();
     if (!imageViewDiv || !imageViewDiv.current) return;
     const current = imageViewDiv.current as HTMLElement;
-    console.log(`mousemove ${event.clientX}, ${event.clientY}`);
-    if (toolMode === ToolMode.Hand) {
-      current.scrollLeft = scrollPosition.current.x + (event.clientX - clientPosition.current.x);
-      current.scrollTop = scrollPosition.current.y + (event.clientY - clientPosition.current.y);
-    }
-
+    
     const rect = current.getBoundingClientRect();
     const offset = {
       x: event.clientX + current.scrollLeft- rect.left,
       y: event.clientY + current.scrollTop - rect.top
     };
-    console.log(offset);
+    // console.log(`mousemove ${offset.x}, ${offset.y}`);
+    if (toolMode === ToolMode.Hand) {
+      // ハンドモード: 画面スクロール
+      current.scrollLeft = scrollPosition.current.x + (event.clientX - clientPosition.current.x);
+      current.scrollTop = scrollPosition.current.y + (event.clientY - clientPosition.current.y);
+    } else if (toolMode === ToolMode.Pencil) {
+      // ペンモード: 描画
+      drawPixels.current = [...drawPixels.current, [offset.x, offset.y]]
+      if (!canvasRef.current) return;
+      const ctx = canvasRef.current.getContext('2d');
+      if (!ctx) return;
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(offset.x, offset.y, 1, 1);
+    }
+
   }
 
   const onMouseleave: React.MouseEventHandler<HTMLImageElement> = (event) => {
     event.preventDefault();
+
+    // ペンモードなら、描画終了処理
+    if (toolMode === ToolMode.Pencil) {
+      glitch();
+    }
 
     // ツール選択を None に戻す
     setToolMode(ToolMode.None);
