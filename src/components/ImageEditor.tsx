@@ -2,7 +2,7 @@ import React from "react";
 
 import "../styles.scss";
 import { PngData } from "../logics/png-data";
-import { PngImage } from "../logics/png-image";
+import { PngImage, PngImageFilterType } from "../logics/png-image";
 
 type ImageViewProps = {
   data: PngData | null
@@ -24,24 +24,58 @@ export const ImageEditor = (props: ImageViewProps) => {
   const scrollPosition = React.useRef({ x: 0, y: 0 });
   const clientPosition = React.useRef({ x: 0, y: 0 });
   const drawPixels = React.useRef<Array<[number, number]>>([]);
+
   React.useEffect(() => {
     if (props.data) {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
       PngImage.from(props.data).then((pngImage) => {
+        console.log('Loaded PNG Image:');
+        console.log(`  - width: ${pngImage.pngData.IHDR.width}`);
+        console.log(`  - height: ${pngImage.pngData.IHDR.height}`);
+        console.log(`  - bitDepth: ${pngImage.pngData.IHDR.bitDepth}`);
+        console.log(`  - colorType: ${pngImage.pngData.IHDR.colorType}`);
+        console.log(`  - compressionMethod: ${pngImage.pngData.IHDR.compressionMethod}`);
+        console.log(`  - filterMethod: ${pngImage.pngData.IHDR.filterMethod}`);
+        console.log(`  - interlaceMethod: ${pngImage.pngData.IHDR.interlaceMethod}`);
+        console.log(`  - scanlines: ${pngImage.imageData.length}`);
+
+
         updateImageUrl(pngImage);
       });
     }
-
-    // // glitch 
-    // for(let i = 0; i < 10; i++) {
-    //   const x = Math.floor(Math.random() * pngImage.pngData.IHDR.width);
-    //   const y = Math.floor(Math.random() * pngImage.pngData.IHDR.height);
-    //   pngImage.setRawPixel(x, y, Math.floor(Math.random() * 256));
-    // }
-    // const pngImageGlitched = (await pngImage.getPngData()).toBlob()
-    // console.log(pngImageGlitched);
-    // setImageSrc(URL.createObjectURL(pngImageGlitched));
   }, [props.data]);
+
+  React.useEffect(() => {
+    const pngImage = image.current;
+    if (pngImage === null) return;
+    // draw filter type
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    for (let y = 0; y < pngImage.imageData.length; y++) {
+      const scanline = pngImage.imageData[y];
+      switch(scanline.filterType) {
+        case PngImageFilterType.None:
+          ctx.fillStyle = 'black'; // No filter
+          break;
+        case PngImageFilterType.Sub:
+          ctx.fillStyle = 'blue'; // Sub filter
+          break;
+        case PngImageFilterType.Up:
+          ctx.fillStyle = 'red'; // Up filter
+          break;
+        case PngImageFilterType.Average:
+          ctx.fillStyle = 'yelow'; // Average filter
+          break;
+        case PngImageFilterType.Paeth:
+          ctx.fillStyle = 'green'; // Paeth filter
+          break;
+        default:
+          ctx.fillStyle = 'magenta'; // Unknown
+      }
+      ctx.fillRect(0, y, 5, 1);
+    }
+  }, [imageUrl]);
 
   const glitch = () => {
     // clear canvas
@@ -49,7 +83,7 @@ export const ImageEditor = (props: ImageViewProps) => {
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    ctx.clearRect(1, 0, canvasRef.current.width, canvasRef.current.height);
 
     // Glitch PNG image
     drawPixels.current.forEach(p => {
@@ -64,9 +98,12 @@ export const ImageEditor = (props: ImageViewProps) => {
   const updateImageUrl = (pngImage: PngImage) => {
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     image.current = pngImage;
+
     pngImage.getPngData().then((pngData) => {
       console.log('updateImageUrl');
       setImageUrl(URL.createObjectURL(pngData.toBlob()));
+      
+      console.log('getPngData');
     });
   }
 

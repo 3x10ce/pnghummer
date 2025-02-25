@@ -2,6 +2,23 @@
 import { crc32 } from "./crc32";
 import { PngData, PngChunk } from "./png-data";
 
+const pixelByte = (colorType: number) => {
+  switch (colorType) {
+    case 0:
+      return 1;
+    case 2:
+      return 3;
+    case 3:
+      return 1;
+    case 4:
+      return 2;
+    case 6:
+      return 4;
+    default:
+      return 0;
+  }
+}
+
 export class PngImage {
   public pngData: PngData;
   public imageData: PngImageScanline[];
@@ -11,7 +28,9 @@ export class PngImage {
     
     // convert imageData to scanlines
     let offset = 0;
-    const scanlineLnength = this.pngData.IHDR.height + 1;
+    const byteOfPixel = pixelByte(this.pngData.IHDR.colorType)
+    if (byteOfPixel === 0) throw new Error("Invalid color type");
+    const scanlineLnength = this.pngData.IHDR.width * pixelByte(this.pngData.IHDR.colorType) + 1;
     while (offset < imageData.length) {
       const scanline = imageData.slice(offset, offset + scanlineLnength);
       this.imageData.push(new PngImageScanline(scanline));
@@ -80,7 +99,7 @@ export class PngImage {
 
   public getRawPixel(x: number, y: number) {
     const scanline = this.imageData[y];
-    const pixel = scanline.data[x];
+    const pixel = scanline.data[x * this.pngData.IHDR.bitDepth / 8 | 0];
     return pixel;
   }
 
