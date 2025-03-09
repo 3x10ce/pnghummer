@@ -1,6 +1,6 @@
 import React from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Container } from "react-bootstrap";
+import { Button, Container, Modal } from "react-bootstrap";
 
 
 import { Header} from "./components/header/Header";
@@ -11,25 +11,44 @@ import { PngData } from "./logics/png-data";
 import "./styles.scss";
 import { PngImage } from "./logics/png-image";
 import { ImageEditor } from "./components/ImageEditor";
+import { HelpModal } from "./components/HelpModal";
 
 export const App = () => {
-
-
   let pngImage: PngImage | null = null;
   let [imageSrc, setImageSrc] = React.useState("");
   let [pngData, setPngData] = React.useState<PngData | null>(null);
-  const onSelect = async (file: File) => {
-    setPngData(new PngData(await file.arrayBuffer()));
+  const [errorMessage, setErrorMessage] = React.useState("");
 
+  let [showHelp, setShowHelp] = React.useState(false);
+
+  const onSelect = async (file: File) => {
+    try {
+      setPngData(new PngData(await file.arrayBuffer()));
+    } catch (e) {
+      setErrorMessage(`エラーが発生しました。: ${e instanceof Error ? e.message : "Unknown error"}`);
+      console.error(e);
+    }
   }
   return (
     <>
       <Header />
       <Container>
-        <p className="mt-3"><FileLoader onSelect={onSelect}/></p>
-        
-        <ImageEditor data={pngData} />
+        <div className="row mt-2">
+          <FileLoader className="col-auto" onSelect={onSelect}/>
+          <Button className="col-auto btn-secondary" onClick={() => setShowHelp(true)}>ヘルプ</Button>
+        </div>
+        <hr />
+        <div className="mt-2">
+          <ImageEditor data={pngData} />
+        </div>
       </Container>
+      <Modal centered show={!!errorMessage} onHide={() => setErrorMessage("")}>
+        <Modal.Header closeButton>
+          <Modal.Title>エラー</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>{errorMessage}</Modal.Body>
+      </Modal>
+      <HelpModal show={!!showHelp} onHide={() => setShowHelp(false)}/>
     </>
   );
 };

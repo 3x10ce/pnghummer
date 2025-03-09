@@ -3,6 +3,7 @@ import React from "react";
 import "../styles.scss";
 import { PngData } from "../logics/png-data";
 import { PngImage, PngImageFilterType } from "../logics/png-image";
+import { Form, InputGroup, OverlayTrigger, Tooltip } from "react-bootstrap";
 
 type ImageViewProps = {
   data: PngData | null
@@ -24,6 +25,8 @@ export const ImageEditor = (props: ImageViewProps) => {
   const scrollPosition = React.useRef({ x: 0, y: 0 });
   const clientPosition = React.useRef({ x: 0, y: 0 });
   const drawPixels = React.useRef<Array<[number, number]>>([]);
+
+  const [showFilterType, setShowFilterType] = React.useState(false);
 
   React.useEffect(() => {
     if (props.data) {
@@ -48,34 +51,38 @@ export const ImageEditor = (props: ImageViewProps) => {
   React.useEffect(() => {
     const pngImage = image.current;
     if (pngImage === null) return;
+
     // draw filter type
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
-    for (let y = 0; y < pngImage.imageData.length; y++) {
-      const scanline = pngImage.imageData[y];
-      switch(scanline.filterType) {
-        case PngImageFilterType.None:
-          ctx.fillStyle = 'black'; // No filter
-          break;
-        case PngImageFilterType.Sub:
-          ctx.fillStyle = 'blue'; // Sub filter
-          break;
-        case PngImageFilterType.Up:
-          ctx.fillStyle = 'red'; // Up filter
-          break;
-        case PngImageFilterType.Average:
-          ctx.fillStyle = 'yelow'; // Average filter
-          break;
-        case PngImageFilterType.Paeth:
-          ctx.fillStyle = 'green'; // Paeth filter
-          break;
-        default:
-          ctx.fillStyle = 'magenta'; // Unknown
+    ctx.clearRect(0, 0, 5, pngImage.imageData.length);
+    if (showFilterType) {
+      for (let y = 0; y < pngImage.imageData.length; y++) {
+        const scanline = pngImage.imageData[y];
+        switch(scanline.filterType) {
+          case PngImageFilterType.None:
+            ctx.fillStyle = 'black'; // No filter
+            break;
+          case PngImageFilterType.Sub:
+            ctx.fillStyle = 'blue'; // Sub filter
+            break;
+          case PngImageFilterType.Up:
+            ctx.fillStyle = 'red'; // Up filter
+            break;
+          case PngImageFilterType.Average:
+            ctx.fillStyle = 'yelow'; // Average filter
+            break;
+          case PngImageFilterType.Paeth:
+            ctx.fillStyle = 'green'; // Paeth filter
+            break;
+          default:
+            ctx.fillStyle = 'magenta'; // Unknown
+        }
+        ctx.fillRect(0, y, 5, 1);
       }
-      ctx.fillRect(0, y, 5, 1);
     }
-  }, [imageUrl]);
+  }, [imageUrl, showFilterType]);
 
   const glitch = () => {
     // clear canvas
@@ -174,8 +181,8 @@ export const ImageEditor = (props: ImageViewProps) => {
     // console.log(`mousemove ${offset.x}, ${offset.y}`);
     if (toolMode === ToolMode.Hand) {
       // ハンドモード: 画面スクロール
-      current.scrollLeft = scrollPosition.current.x + (event.clientX - clientPosition.current.x);
-      current.scrollTop = scrollPosition.current.y + (event.clientY - clientPosition.current.y);
+      current.scrollLeft = scrollPosition.current.x - (event.clientX - clientPosition.current.x);
+      current.scrollTop = scrollPosition.current.y - (event.clientY - clientPosition.current.y);
     } else if (toolMode === ToolMode.Pencil) {
       // ペンモード: 描画
       drawPixels.current = [...drawPixels.current, [offset.x, offset.y]]
@@ -208,18 +215,45 @@ export const ImageEditor = (props: ImageViewProps) => {
     event.preventDefault();
   }
 
+  const tooltip = (<Tooltip id="scanlineFilterTooltip">
+    <p>PNG 画像の スキャンラインフィルターの種類を次の色で表示します。詳細はPNG仕様書を参照してください</p>
+    <ul>
+      <li>黒: None</li>
+      <li>青: Sub</li>
+      <li>赤: Up</li>
+      <li>黄色: Average</li>
+      <li>緑: Paeth</li>
+    </ul>
+  </Tooltip>)
   return (
-    <div className="image-view" ref={imageViewDiv}>
-      {imageUrl && (
-        <img className="previewimg" src={imageUrl}
-          onMouseDown={onMousedown} onMouseUp={onMouseup} onMouseMove={onMousemove}
-          onMouseEnter={onMouseenter} onMouseLeave={onMouseleave}/>
-      )}
-      {image.current && (
-        <canvas className="editpreview" ref={canvasRef}
-          width={image.current?.pngData.IHDR.width} height={image.current?.pngData.IHDR.height} />
-      )}
-    </div>
+    <>
+      <Form className="row justify-content fs-6">
+        <div className="col-auto">
+          <Form.Check
+            id="cb_showFilterType"
+            checked={showFilterType}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShowFilterType(e.target.checked)}
+            label="Scanline Filter を表示"
+          />
+        </div>
+        <div className="col-auto">
+          <OverlayTrigger placement="bottom" overlay={tooltip}>
+            <span className="help-text">これは何?</span>
+          </OverlayTrigger>
+        </div>
+      </Form>
+      <div className="image-view" ref={imageViewDiv}>
+        {imageUrl && (
+          <img className="previewimg" src={imageUrl}
+            onMouseDown={onMousedown} onMouseUp={onMouseup} onMouseMove={onMousemove}
+            onMouseEnter={onMouseenter} onMouseLeave={onMouseleave}/>
+        )}
+        {image.current && (
+          <canvas className="editpreview" ref={canvasRef}
+            width={image.current?.pngData.IHDR.width} height={image.current?.pngData.IHDR.height} />
+        )}
+      </div>
+    </>
   );
 };
 

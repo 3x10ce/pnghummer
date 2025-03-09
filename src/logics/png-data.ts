@@ -17,6 +17,9 @@ export class PngData {
 
     // Parse File Header
     const fileHeader = pngData.slice(0, 8);
+    if (fileHeader[0] !== 0x89 || fileHeader[1] !== 0x50 || fileHeader[2] !== 0x4E || fileHeader[3] !== 0x47 || fileHeader[4] !== 0x0D || fileHeader[5] !== 0x0A || fileHeader[6] !== 0x1A || fileHeader[7] !== 0x0A) {
+      throw new Error("Invalid PNG file header");
+    }
     this.fileHeader = fileHeader;
 
     // Parse IHDR
@@ -78,7 +81,7 @@ export class PngChunk {
     // check CRC
     const crcCheck = crc32(chunk.slice(4, 8 + length));
     if (crcCheck !== crc) {
-      console.warn(`CRC check failed: ${crcCheck} !== ${crc}`);
+      throw new Error("Failed to validate CRC");
     }
     
     return new PngChunk(type, data, length, crc);
