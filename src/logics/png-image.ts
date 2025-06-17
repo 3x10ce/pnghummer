@@ -30,11 +30,11 @@ export class PngImage {
     let offset = 0;
     const byteOfPixel = pixelByte(this.pngData.IHDR.colorType)
     if (byteOfPixel === 0) throw new Error("Invalid color type");
-    const scanlineLnength = this.pngData.IHDR.width * pixelByte(this.pngData.IHDR.colorType) + 1;
+    const scanlineLength = this.pngData.IHDR.width * byteOfPixel + 1;
     while (offset < imageData.length) {
-      const scanline = imageData.slice(offset, offset + scanlineLnength);
+      const scanline = imageData.slice(offset, offset + scanlineLength);
       this.imageData.push(new PngImageScanline(scanline));
-      offset += scanlineLnength;
+      offset += scanlineLength;
     }
   }
 
@@ -99,7 +99,8 @@ export class PngImage {
 
   public getRawPixel(x: number, y: number) {
     const scanline = this.imageData[y];
-    const pixel = scanline.data[x * this.pngData.IHDR.bitDepth / 8 | 0];
+    const pixelSize = pixelByte(this.pngData.IHDR.colorType);
+    const pixel = scanline.data[x * pixelSize];
     return pixel;
   }
 
@@ -123,10 +124,8 @@ export class PngImage {
         break;
       case 4:
         // Grayscale with alpha
-        scanline.data[x * 4 + 0] = (pixel as number[])[0];
-        scanline.data[x * 4 + 1] = (pixel as number[])[1];
-        scanline.data[x * 4 + 2] = (pixel as number[])[2];
-        scanline.data[x * 4 + 3] = (pixel as number[])[3];
+        scanline.data[x * 2 + 0] = (pixel as number[])[0];
+        scanline.data[x * 2 + 1] = (pixel as number[])[1];
         break;
       case 6:
         // RGB with alpha

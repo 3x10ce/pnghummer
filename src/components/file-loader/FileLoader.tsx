@@ -26,7 +26,7 @@ export const FileLoader = (props: FileLoaderProps) => {
   return (
     <div className={(props.className || "") + " row"}>
       <div className="col-auto">
-        <Form.Label className="col-form-label" htmlfor={id}>PNG 画像を選択:</Form.Label>
+        <Form.Label className="col-form-label" htmlFor={id}>PNG 画像を選択:</Form.Label>
       </div>
       <div className="col-auto">
         <Form.Control id={id} type="file" onChange={onchange} accept="image/png"/>

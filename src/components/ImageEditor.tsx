@@ -71,7 +71,7 @@ export const ImageEditor = (props: ImageViewProps) => {
             ctx.fillStyle = 'red'; // Up filter
             break;
           case PngImageFilterType.Average:
-            ctx.fillStyle = 'yelow'; // Average filter
+            ctx.fillStyle = 'yellow'; // Average filter
             break;
           case PngImageFilterType.Paeth:
             ctx.fillStyle = 'green'; // Paeth filter
