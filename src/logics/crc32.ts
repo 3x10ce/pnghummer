@@ -1,9 +1,7 @@
-
-
 // CRC hash calculate table
-const crcTable = [...Array(256)].map((_,n)=>
-  [...Array(8)].reduce((c,_) =>
-    (c & 1) ? 0xedb88320 ^ (c >>> 1) : c >>> 1 , n));
+const crcTable = [...Array(256)].map((_, n) =>
+  [...Array(8)].reduce((c) => (c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1), n),
+);
 
 console.log(crcTable.map((n) => n.toString(16)));
 
@@ -16,12 +14,10 @@ console.log(crcTable.map((n) => n.toString(16)));
  */
 const updateCrc = (crc: number, data: Uint8Array) => {
   return data.reduce((p, c) => {
-    const idx = (p ^ c) & 0xff
-    return crcTable[idx] ^ (p >>> 8)
+    const idx = (p ^ c) & 0xff;
+    return crcTable[idx] ^ (p >>> 8);
   }, crc);
-
-}
-
+};
 
 /**
  * Computes the CRC-32 checksum for a given data array.

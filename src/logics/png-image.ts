@@ -1,5 +1,3 @@
-
-import { crc32 } from "./crc32";
 import { PngData, PngChunk } from "./png-data";
 
 const pixelByte = (colorType: number) => {
@@ -17,7 +15,7 @@ const pixelByte = (colorType: number) => {
     default:
       return 0;
   }
-}
+};
 
 export class PngImage {
   public pngData: PngData;
@@ -25,10 +23,10 @@ export class PngImage {
   protected constructor(pngData: PngData, imageData: Uint8Array) {
     this.pngData = pngData;
     this.imageData = [];
-    
+
     // convert imageData to scanlines
     let offset = 0;
-    const byteOfPixel = pixelByte(this.pngData.IHDR.colorType)
+    const byteOfPixel = pixelByte(this.pngData.IHDR.colorType);
     if (byteOfPixel === 0) throw new Error("Invalid color type");
     const scanlineLength = this.pngData.IHDR.width * byteOfPixel + 1;
     while (offset < imageData.length) {
@@ -49,15 +47,21 @@ export class PngImage {
     for await (const chunk of dsStream) {
       decompressedData.push(chunk);
     }
-    const imageData = new Uint8Array(await new Blob(decompressedData).arrayBuffer());
-    console.log(`Decompress data size: ${dataBlob.size} => ${imageData.length}`);
+    const imageData = new Uint8Array(
+      await new Blob(decompressedData).arrayBuffer(),
+    );
+    console.log(
+      `Decompress data size: ${dataBlob.size} => ${imageData.length}`,
+    );
     return new PngImage(pngData, imageData);
   }
 
   public async getPngData() {
     // zlib compress image data
     const us = new CompressionStream("deflate");
-    const dataBlob = new Blob(this.imageData.map((scanline) => scanline.toBinary()));
+    const dataBlob = new Blob(
+      this.imageData.map((scanline) => scanline.toBinary()),
+    );
     const usStream = dataBlob.stream().pipeThrough(us);
 
     // read compressed data
@@ -67,8 +71,12 @@ export class PngImage {
     }
 
     // merge image data
-    const mergedImageData = new Uint8Array(compressedData.reduce((a, b) => a + b.length, 0));
-    console.log(`Compress data size: ${dataBlob.size} => ${mergedImageData.length}`);
+    const mergedImageData = new Uint8Array(
+      compressedData.reduce((a, b) => a + b.length, 0),
+    );
+    console.log(
+      `Compress data size: ${dataBlob.size} => ${mergedImageData.length}`,
+    );
 
     let offset = 0;
     for (const chunk of compressedData) {
@@ -79,9 +87,9 @@ export class PngImage {
     // create IDATs
     const IDATs: PngChunk[] = [];
     offset = 0;
-  
+
     while (offset < mergedImageData.length) {
-      // packing data to IDAT 
+      // packing data to IDAT
       const length = Math.min(8 * 1024, mergedImageData.length - offset);
       const data = mergedImageData.slice(offset, offset + length);
 
@@ -104,10 +112,9 @@ export class PngImage {
     return pixel;
   }
 
-  
   public setRawPixel(x: number, y: number, pixel: number | number[]) {
     const scanline = this.imageData[y];
-    switch(this.pngData.IHDR.colorType) {
+    switch (this.pngData.IHDR.colorType) {
       case 0:
         // Grayscale
         scanline.data[x] = pixel as number;
@@ -143,7 +150,7 @@ export enum PngImageFilterType {
   Sub = 1,
   Up = 2,
   Average = 3,
-  Paeth = 4
+  Paeth = 4,
 }
 
 export class PngImageScanline {
